@@ -1122,16 +1122,22 @@ void BleGamepad::release(uint8_t b)
 
 uint8_t BleGamepad::specialButtonBitPosition(uint8_t b)
 {
-  if (b >= POSSIBLESPECIALBUTTONS)
-    throw std::invalid_argument("Index out of range");
   uint8_t bit = 0;
-
-  for (int i = 0; i < b; i++)
+  
+  if (b >= POSSIBLESPECIALBUTTONS)
   {
-    if (configuration.getWhichSpecialButtons()[i])
-      bit++;
+    // Just return 0 if the button bit is out of range
+    return bit;
   }
-  return bit;
+  else
+  {
+    for (int i = 0; i < b; i++)
+    {
+      if (configuration.getWhichSpecialButtons()[i])
+        bit++;
+    }
+    return bit;
+  }  
 }
 
 void BleGamepad::pressSpecialButton(uint8_t b)
