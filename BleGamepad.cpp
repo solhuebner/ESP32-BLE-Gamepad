@@ -368,9 +368,10 @@ void BleGamepad::begin(BleGamepadConfiguration *config)
     tempHidReportDescriptor[hidReportDescriptorSize++] = 0x75;
     tempHidReportDescriptor[hidReportDescriptorSize++] = 0x10;
 
-    // REPORT_COUNT (configuration.getAxisCount())
+    // REPORT_COUNT (configuration.getAxisCount() - sliders)
+    uint8_t sliders = (configuration.getIncludeSlider1() ? 1 : 0) + (configuration.getIncludeSlider2() ? 1 : 0);
     tempHidReportDescriptor[hidReportDescriptorSize++] = 0x95;
-    tempHidReportDescriptor[hidReportDescriptorSize++] = configuration.getAxisCount();
+    tempHidReportDescriptor[hidReportDescriptorSize++] = configuration.getAxisCount() - sliders;
 
     // COLLECTION (Physical)
     tempHidReportDescriptor[hidReportDescriptorSize++] = 0xA1;
@@ -418,23 +419,53 @@ void BleGamepad::begin(BleGamepadConfiguration *config)
       tempHidReportDescriptor[hidReportDescriptorSize++] = 0x34;
     }
 
+    // INPUT (Data,Var,Abs)
+    tempHidReportDescriptor[hidReportDescriptorSize++] = 0x81;
+    tempHidReportDescriptor[hidReportDescriptorSize++] = 0x02;
+
     if (configuration.getIncludeSlider1())
     {
+      // REPORT_COUNT (1)
+      tempHidReportDescriptor[hidReportDescriptorSize++] = 0x95;
+      tempHidReportDescriptor[hidReportDescriptorSize++] = 0x01;
+
+      // COLLECTION (Logical)
+      tempHidReportDescriptor[hidReportDescriptorSize++] = 0xA1;
+      tempHidReportDescriptor[hidReportDescriptorSize++] = 0x02;
+
       // USAGE (Slider)
       tempHidReportDescriptor[hidReportDescriptorSize++] = 0x09;
       tempHidReportDescriptor[hidReportDescriptorSize++] = 0x36;
+
+      // INPUT (Data,Var,Abs)
+      tempHidReportDescriptor[hidReportDescriptorSize++] = 0x81;
+      tempHidReportDescriptor[hidReportDescriptorSize++] = 0x02;
+
+      // END_COLLECTION (Logical)
+      tempHidReportDescriptor[hidReportDescriptorSize++] = 0xC0;
     }
 
     if (configuration.getIncludeSlider2())
     {
+      // REPORT_COUNT (1)
+      tempHidReportDescriptor[hidReportDescriptorSize++] = 0x95;
+      tempHidReportDescriptor[hidReportDescriptorSize++] = 0x01;
+
+      // COLLECTION (Logical)
+      tempHidReportDescriptor[hidReportDescriptorSize++] = 0xA1;
+      tempHidReportDescriptor[hidReportDescriptorSize++] = 0x02;
+
       // USAGE (Slider)
       tempHidReportDescriptor[hidReportDescriptorSize++] = 0x09;
       tempHidReportDescriptor[hidReportDescriptorSize++] = 0x36;
-    }
 
-    // INPUT (Data,Var,Abs)
-    tempHidReportDescriptor[hidReportDescriptorSize++] = 0x81;
-    tempHidReportDescriptor[hidReportDescriptorSize++] = 0x02;
+      // INPUT (Data,Var,Abs)
+      tempHidReportDescriptor[hidReportDescriptorSize++] = 0x81;
+      tempHidReportDescriptor[hidReportDescriptorSize++] = 0x02;
+
+      // END_COLLECTION (Logical)
+      tempHidReportDescriptor[hidReportDescriptorSize++] = 0xC0;
+    }
 
     // END_COLLECTION (Physical)
     tempHidReportDescriptor[hidReportDescriptorSize++] = 0xc0;
