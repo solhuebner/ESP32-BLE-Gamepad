@@ -35,5 +35,12 @@ desktop.ini
 *.swp
 *~
 
+# ========================
+# Python (test scripts, e.g. examples/SInputPlayerLED)
+# ========================
+__pycache__/
+*.pyc
+.venv/
+
 # hardware-in-the-loop run output pulled back by scripts/hil.sh
 hil-results/
