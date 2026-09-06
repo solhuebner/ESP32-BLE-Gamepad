@@ -97,22 +97,22 @@ rsync -a --delete -e "${RSYNC_E[*]}" "$HIL_REPO"/bundles/ "$PI:hil-bundles/"
 # extra args are appended straight to pytest (our --bench flag + anything the
 # caller put after --, e.g. -k buttons). Per-bundle output streams live; each
 # bundle prints its own phase banners + one-line verdict (tester/test.sh).
-EXTRA="${BENCH[*]:-} ${PYTEST_ARGS[*]:-}"
 rc=0
-"${SSH[@]}" "$PI" "bash -s" <<REMOTE || rc=$?
+"${SSH[@]}" "$PI" "bash -s --" "$REMOTE_DIR" "${BENCH[@]}" "${PYTEST_ARGS[@]}" <<'REMOTE' || rc=$?
 set -e
-cd ~/$REMOTE_DIR
+REMOTE_DIR="$1"; shift
+cd ~/"$REMOTE_DIR"
 rm -rf results && mkdir results
-total=\$(ls -d ~/hil-bundles/*/ | wc -l)
-echo "== \$total bundle(s) to flash + test on \$(hostname)"
+total=$(ls -d ~/hil-bundles/*/ | wc -l)
+echo "== $total bundle(s) to flash + test on $(hostname)"
 rc=0; i=0
 for b in ~/hil-bundles/*/; do
-  i=\$((i+1))
-  echo; echo "########## [\$i/\$total] \$(basename "\$b")  \$(date +%H:%M:%S)"
-  ./tester/test.sh "\$b" $EXTRA || rc=\$?
+  i=$((i+1))
+  echo; echo "########## [$i/$total] $(basename "$b")  $(date +%H:%M:%S)"
+  ./tester/test.sh "$b" "$@" || rc=$?
 done
 echo; echo '########## verdicts'; cat results/run-verdicts.md 2>/dev/null || true
-exit \$rc
+exit $rc
 REMOTE
 
 # --- 5. pull results + regenerate the distilled table/charts -----------
