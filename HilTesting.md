@@ -83,9 +83,37 @@ Setup:
 | rig repo secrets | `TS_OAUTH_CLIENT_ID` / `TS_OAUTH_SECRET` (Tailscale OAuth client, `tag:ci`, "Auth Keys" write); `HIL_TESTER_HOST` (tester MagicDNS name), `HIL_TESTER_USER`, `HIL_TESTER_SSH_KEY` |
 | rig tailnet ACL | `tag:ci` → tester `tcp:22` |
 | tester | `tailscale up` (tagged for the ACL); CI public key in `~/.ssh/authorized_keys`; `tester/bootstrap-host.sh` installs Tailscale |
-| this repo secret | `HIL_DISPATCH_TOKEN` — PAT for the rig repo with **Contents: write** (POST `repository_dispatch`) + **Actions: read** (poll the run). Classic PAT: `repo` scope. Set on **both** the repos in `hil.yml`'s `if:` guard (upstream `lemmingDev/ESP32-BLE-Gamepad` and the `LeeNX` fork) — each has its own |
+| this repo secret | `HIL_DISPATCH_TOKEN` — PAT for the rig repo with **Contents: write** (POST `repository_dispatch`) + **Actions: read** (poll the run). Set on **both** repos in `hil.yml`'s `if:` guard (upstream `lemmingDev/ESP32-BLE-Gamepad` and the `LeeNX` fork) — each has its own. Step-by-step: *Creating `HIL_DISPATCH_TOKEN`* below |
 | rig repo default branch | `hil.yml` must be on it — `repository_dispatch` only runs the workflow file version on the default branch |
 | this repo variables (optional) | `HIL_RIG_REF` — a rig tag; setting it makes `release.yml` attach the firmware set (below). `HIL_RIG_REPO` — the rig repo, default `LeeNX/ESP32-BLE-Gamepad-HIL` |
+
+### Creating `HIL_DISPATCH_TOKEN`
+
+A **fine-grained** personal access token, created by someone with write access
+to the rig repo (`LeeNX/ESP32-BLE-Gamepad-HIL`):
+
+1. github.com → your avatar → **Settings** → **Developer settings** →
+   **Personal access tokens** → **Fine-grained tokens** → **Generate new token**
+2. **Resource owner**: `LeeNX` (the rig repo's owner). If that's an org, its
+   settings may need to allow fine-grained PATs / approve the token afterwards.
+3. **Repository access** → *Only select repositories* → `LeeNX/ESP32-BLE-Gamepad-HIL`
+4. **Permissions** → *Repository permissions*:
+   - **Contents**: *Read and write* — to `POST /repos/…/dispatches`
+   - **Actions**: *Read-only* — to poll the dispatched run
+   - (*Metadata: Read-only* is added automatically)
+5. Set an **expiration** you'll rotate before it lapses (CI breaks silently when
+   it expires — the dispatch step fails with `HIL_DISPATCH_TOKEN … not set`).
+6. **Generate token** and copy it.
+
+Then add it to **each** repo whose `hil.yml` runs (`lemmingDev/ESP32-BLE-Gamepad`
+and `LeeNX/ESP32-BLE-Gamepad` — whichever you operate):
+
+7. Repo → **Settings** → **Secrets and variables** → **Actions** → **Secrets** →
+   **New repository secret**
+8. Name `HIL_DISPATCH_TOKEN`, value = the token.
+
+Classic-PAT alternative: **Generate new token (classic)** with the `repo` scope —
+simpler, but grants far more than needed; prefer fine-grained.
 
 ### Firmware artifacts on releases
 
@@ -122,8 +150,8 @@ suite. Works for any public ref with zero changes to the target repo.
 
 **2. Adopt `hil.yml`, pointed at the LeeNX rig.** Add the fork's
 `github.repository` to this workflow's `if:` guard and add `HIL_DISPATCH_TOKEN`
-— a fine-grained PAT scoped to `LeeNX/ESP32-BLE-Gamepad-HIL` only (Contents:
-write + Actions: read), minted by someone with write on the rig.
+(see *Creating `HIL_DISPATCH_TOKEN`* above — scoped to `LeeNX/ESP32-BLE-Gamepad-HIL`
+only), minted by someone with write on the rig.
 Cross-org, so the rig owner must accept the fork's CI driving their hardware;
 the `concurrency` groups on both sides plus the rig's single physical tester
 keep runs from colliding. Fork PRs still can't run automatically (no secrets on
