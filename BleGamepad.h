@@ -166,10 +166,10 @@ class BleGamepad
     String getDeviceName();
     String getDeviceManufacturer();
     // Size (in bytes) of the HID input report and of the generated HID report
-    // descriptor, both computed during begin(). 0 before begin() has run. The
-    // descriptor is assembled into a fixed tempHidReportDescriptor[150] buffer,
-    // so getHidReportDescriptorSize() approaching 150 means the current
-    // configuration is close to overflowing it.
+    // descriptor. Both are (re)computed from scratch on every begin() call and
+    // read 0 before the first one. The descriptor is assembled into a fixed
+    // tempHidReportDescriptor[150] buffer, so getHidReportDescriptorSize()
+    // approaching 150 means the current configuration is close to overflowing it.
     uint8_t getHidReportSize() const { return hidReportSize; }
     int getHidReportDescriptorSize() const { return hidReportDescriptorSize; }
     // The generated HID report descriptor bytes (length = getHidReportDescriptorSize()).
