@@ -83,7 +83,7 @@ Setup:
 | rig repo secrets | `TS_OAUTH_CLIENT_ID` / `TS_OAUTH_SECRET` (Tailscale OAuth client, `tag:ci`, "Auth Keys" write); `HIL_TESTER_HOST` (tester MagicDNS name), `HIL_TESTER_USER`, `HIL_TESTER_SSH_KEY` |
 | rig tailnet ACL | `tag:ci` → tester `tcp:22` |
 | tester | `tailscale up` (tagged for the ACL); CI public key in `~/.ssh/authorized_keys`; `tester/bootstrap-host.sh` installs Tailscale |
-| this repo secret | `HIL_DISPATCH_TOKEN` — PAT for the rig repo with **Contents: write** (POST `repository_dispatch`) + **Actions: read** (poll the run). Classic PAT: `repo` scope |
+| this repo secret | `HIL_DISPATCH_TOKEN` — PAT for the rig repo with **Contents: write** (POST `repository_dispatch`) + **Actions: read** (poll the run). Classic PAT: `repo` scope. Set on **both** the repos in `hil.yml`'s `if:` guard (upstream `lemmingDev/ESP32-BLE-Gamepad` and the `LeeNX` fork) — each has its own |
 | rig repo default branch | `hil.yml` must be on it — `repository_dispatch` only runs the workflow file version on the default branch |
 | this repo variables (optional) | `HIL_RIG_REF` — a rig tag; setting it makes `release.yml` attach the firmware set (below). `HIL_RIG_REPO` — the rig repo, default `LeeNX/ESP32-BLE-Gamepad-HIL` |
 
@@ -104,8 +104,10 @@ building is just PlatformIO, and the upload uses `GITHUB_TOKEN`.
 ## Other forks and upstream
 
 The rig and its Tailscale / tester secrets live in
-`LeeNX/ESP32-BLE-Gamepad-HIL`. A fork in another namespace (e.g. upstream
-`lemmingDev/ESP32-BLE-Gamepad`) has three options, cheapest first:
+`LeeNX/ESP32-BLE-Gamepad-HIL`. `hil.yml`'s `if:` guard already runs it for
+upstream `lemmingDev/ESP32-BLE-Gamepad` and the `LeeNX` fork — those two just
+need their own `HIL_DISPATCH_TOKEN` secret (above). A fork in any *other*
+namespace has three options, cheapest first:
 
 **1. On demand, no setup.** The rig's `hil.yml` takes `lib_repo` + `lib_ref`
 inputs, so from the rig repo's Actions tab → **HIL** → *Run workflow*:
@@ -118,10 +120,10 @@ inputs, so from the rig repo's Actions tab → **HIL** → *Run workflow*:
 The rig clones that ref, builds `hil_runner` against it, and runs the full
 suite. Works for any public ref with zero changes to the target repo.
 
-**2. Adopt `hil.yml`, pointed at the LeeNX rig.** Merge this workflow, widen its
-`if:` guard to include the fork's `github.repository`, and add
-`HIL_DISPATCH_TOKEN` — a fine-grained PAT scoped to `LeeNX/ESP32-BLE-Gamepad-HIL`
-only (Contents: write + Actions: read), minted by someone with write on the rig.
+**2. Adopt `hil.yml`, pointed at the LeeNX rig.** Add the fork's
+`github.repository` to this workflow's `if:` guard and add `HIL_DISPATCH_TOKEN`
+— a fine-grained PAT scoped to `LeeNX/ESP32-BLE-Gamepad-HIL` only (Contents:
+write + Actions: read), minted by someone with write on the rig.
 Cross-org, so the rig owner must accept the fork's CI driving their hardware;
 the `concurrency` groups on both sides plus the rig's single physical tester
 keep runs from colliding. Fork PRs still can't run automatically (no secrets on
