@@ -106,6 +106,14 @@ void BleGamepad::begin(BleGamepadConfiguration *config)
 {
   configuration = *config; // we make a copy, so the user can't change actual values midway through operation, without calling the begin function again
 
+  // begin() may be called again to re-apply a changed configuration. Reset the
+  // sizes so they are recomputed from scratch: hidReportDescriptorSize indexes
+  // tempHidReportDescriptor as the descriptor is assembled below, so a stale
+  // non-zero value would append past the previous descriptor and overflow the
+  // fixed buffer. (They start at 0 from the constructor on the first call.)
+  hidReportDescriptorSize = 0;
+  hidReportSize = 0;
+
   enableOutputReport = configuration.getEnableOutputReport();
   outputReportLength = configuration.getOutputReportLength();
   enableFeatureReport = configuration.getEnableFeatureReport();
@@ -827,6 +835,17 @@ void BleGamepad::begin(BleGamepadConfiguration *config)
 
   // END_COLLECTION (Application)
   tempHidReportDescriptor[hidReportDescriptorSize++] = 0xc0;
+
+  // tempHidReportDescriptor is a fixed buffer. A very large configuration (max
+  // buttons + every axis/simulation control + motion + hats + feature/output
+  // reports) can approach its capacity; if it is ever exceeded the writes above
+  // have already run past the end of the array, so fail loud here rather than
+  // ship a silently corrupt descriptor. getHidReportDescriptorSize() lets a
+  // caller watch the headroom.
+  if (hidReportDescriptorSize > (int)sizeof(tempHidReportDescriptor))
+  {
+    NIMBLE_LOGE(LOG_TAG, "HID report descriptor (%d bytes) overflowed its %u-byte buffer", hidReportDescriptorSize, (unsigned)sizeof(tempHidReportDescriptor));
+  }
 
   // Set task priority from 5 to 1 in order to get ESP32-C3 working
   xTaskCreate(this->taskServer, "server", 20000, (void *)this, 1, NULL);
