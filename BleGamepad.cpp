@@ -73,11 +73,12 @@ BleGamepad::BleGamepad(std::string deviceName, std::string deviceManufacturer, u
   _dischargingState(0),
   _chargingState(0),
   _powerLevel(0),
+  nusInitialized(false),
+  pServer(nullptr),
+  nus(nullptr),
   hid(0),
   pCharacteristic_Power_State(0),
-  configuration(),
-  pServer(nullptr), 
-  nus(nullptr)
+  configuration()
 {
   this->resetButtons();
   this->deviceName = deviceName;
@@ -94,8 +95,6 @@ BleGamepad::BleGamepad(std::string deviceName, std::string deviceManufacturer, u
   outputReportLength = 64;
   enableFeatureReport = false;
   featureReportLength = 64;
-
-  nusInitialized = false;
 }
 
 void BleGamepad::resetButtons()
@@ -106,6 +105,14 @@ void BleGamepad::resetButtons()
 void BleGamepad::begin(BleGamepadConfiguration *config)
 {
   configuration = *config; // we make a copy, so the user can't change actual values midway through operation, without calling the begin function again
+
+  // begin() may be called again to re-apply a changed configuration. Reset the
+  // sizes so they are recomputed from scratch: hidReportDescriptorSize indexes
+  // tempHidReportDescriptor as the descriptor is assembled below, so a stale
+  // non-zero value would append past the previous descriptor and overflow the
+  // fixed buffer. (They start at 0 from the constructor on the first call.)
+  hidReportDescriptorSize = 0;
+  hidReportSize = 0;
 
   enableOutputReport = configuration.getEnableOutputReport();
   outputReportLength = configuration.getOutputReportLength();
@@ -984,6 +991,17 @@ void BleGamepad::begin(BleGamepadConfiguration *config)
   tempHidReportDescriptor[hidReportDescriptorSize++] = 0xc0;
 
   } // enableSInput
+
+  // tempHidReportDescriptor is a fixed buffer. A very large configuration (max
+  // buttons + every axis/simulation control + motion + hats + feature/output
+  // reports) can approach its capacity; if it is ever exceeded the writes above
+  // have already run past the end of the array, so fail loud here rather than
+  // ship a silently corrupt descriptor. getHidReportDescriptorSize() lets a
+  // caller watch the headroom.
+  if (hidReportDescriptorSize > (int)sizeof(tempHidReportDescriptor))
+  {
+    NIMBLE_LOGE(LOG_TAG, "HID report descriptor (%d bytes) overflowed its %u-byte buffer", hidReportDescriptorSize, (unsigned)sizeof(tempHidReportDescriptor));
+  }
 
   // Set task priority from 5 to 1 in order to get ESP32-C3 working
   xTaskCreate(this->taskServer, "server", 20000, (void *)this, 1, NULL);
@@ -2511,7 +2529,8 @@ void BleGamepad::taskServer(void *pvParameter)
   #endif
   
   BleGamepadInstance->hid->setReportMap((uint8_t *)customHidReportDescriptor, BleGamepadInstance->hidReportDescriptorSize);
-  BleGamepadInstance->hid->startServices();
+  // Deprecated in NimBLE-Arduino >=2.0: Services are auto-started by the server
+  // BleGamepadInstance->hid->startServices();
 
   BleGamepadInstance->onStarted(pServer);
 

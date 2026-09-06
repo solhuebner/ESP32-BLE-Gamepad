@@ -167,6 +167,8 @@ For testing Input/Output/Feature Reports on Linux (Ubuntu/Debian) via the OS's H
 ## GATT vs HID-over-GATT
 For an explanation of how this library's HID Service and NUS service differ, how SDL/game engines and the Linux input stack actually reach each one, and how to extend it with features like rumble or RGB/player LEDs, see [GattVsHid](GattVsHid.md)
 
+For the hardware-in-the-loop test rig — running the real firmware on an ESP32, pairing it to a Linux host, and asserting every button/axis/hat/special, the GATT/Device-Information values, battery and power state, plus polling-rate/latency benchmarks — see [HilTesting](HilTesting.md)
+
 ## Credits
 Credits to [T-vK](https://github.com/T-vK) as this library is based on his ESP32-BLE-Mouse library (https://github.com/T-vK/ESP32-BLE-Mouse) that he provided.
 
