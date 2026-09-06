@@ -8,7 +8,8 @@ name: HIL
 # latency suite against a Linux host's evdev / GATT stack. See HilTesting.md.
 #
 # The rig, its Tailscale credentials and the tester SSH key live entirely in the
-# rig repo. This side only needs one secret:
+# rig repo. Each repo that runs this workflow (upstream lemmingDev and the LeeNX
+# fork -- see the job's `if:`) needs one secret of its own:
 #
 #   HIL_DISPATCH_TOKEN   PAT for LeeNX/ESP32-BLE-Gamepad-HIL with
 #                        Contents: write  (to POST repository_dispatch)
@@ -61,9 +62,13 @@ permissions: {}
 
 jobs:
   hil:
-    # The rig + its secrets live in LeeNX/ESP32-BLE-Gamepad-HIL and the dispatch
-    # token is only on this repo. Forks and upstream skip the job cleanly.
-    if: github.repository == 'LeeNX/ESP32-BLE-Gamepad'
+    # The rig + its Tailscale / tester secrets live in LeeNX/ESP32-BLE-Gamepad-HIL.
+    # Upstream and the LeeNX fork both drive it; each must set its own
+    # HIL_DISPATCH_TOKEN secret (a PAT scoped to the rig repo -- Contents: write +
+    # Actions: read). Any other fork skips the job cleanly.
+    if: >-
+      github.repository == 'lemmingDev/ESP32-BLE-Gamepad' ||
+      github.repository == 'LeeNX/ESP32-BLE-Gamepad'
     runs-on: ubuntu-latest
 
     steps:
